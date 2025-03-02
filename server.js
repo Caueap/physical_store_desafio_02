@@ -2,6 +2,7 @@ const dotenv = require("dotenv");
 const express = require("express");
 const mongoose = require("mongoose");
 const logger = require('./logger');
+const storeRouter = require('./routes/store-router');
 
 dotenv.config({ path: './config.env' });
 
@@ -25,6 +26,8 @@ mongoose
   });
 
 app.use(express.json());
+
+app.use('/api/v1/stores', storeRouter);
 
 app.listen(port, () => {
   logger.info(`API rodando na porta ${port}`);
