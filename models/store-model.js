@@ -5,6 +5,13 @@ const storeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  address: {
+    logradouro: { type: String, required: true },
+    complemento: String,
+    bairro: { type: String, required: true },
+    localidade: { type: String, required: true },
+    estado: { type: String, required: true },
+  },
   location: {
     type: {
       type: String,
@@ -20,4 +27,4 @@ const storeSchema = new mongoose.Schema({
 
 storeSchema.index({ location: "2dsphere" });
 
-module.exports = mongoose.model('Store', storeSchema);
+module.exports = mongoose.model("Store", storeSchema);

@@ -25,6 +25,16 @@ function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
+function generateRandomAddress(index) {
+  return {
+    logradouro: `Rua ${index + 1}`,
+    complemento: index % 2 === 0 ? `Bloco ${index}` : "",
+    bairro: `Bairro ${Math.ceil(index / 5)}`,
+    localidade: `Cidade ${Math.ceil(index / 10)}`,
+    estado: `Estado ${String.fromCharCode(65 + (index % 5))}`,
+  };
+}
+
 async function seedStores() {
   try {
     await Store.deleteMany({});
@@ -36,6 +46,7 @@ async function seedStores() {
 
       stores.push({
         name: `Loja ${i + 1}`,
+        address: generateRandomAddress(i),
         location: {
           type: "Point",
           coordinates: [lon, lat],
