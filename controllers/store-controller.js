@@ -13,26 +13,9 @@ exports.getStores = async (req, res) => {
   }
 
   try {
-    const viacepResponse = await axios.get(
-      `https://viacep.com.br/ws/${cep}/json/`
-    );
-    const addressData = viacepResponse.data;
-    if (addressData.erro) {
-      logger.warn(`CEP ${cep} não encontrado`);
-      return res.status(404).json({ error: "CEP não encontrado" });
-    }
+    const addressData = await getAddressByCep(cep);
 
-    const query = encodeURIComponent(
-      `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`
-    );
-    const geocodeResponse = await axios.get(
-      `https://nominatim.openstreetmap.org/search?q=${query}&format=json`
-    );
-    const geocodeData = geocodeResponse.data;
-    if (!geocodeData || geocodeData.length === 0) {
-      logger.warn(`Coordenadas não encontradas para o CEP ${cep}`);
-      return res.status(404).json({ error: "Coordenadas não encontradas" });
-    }
+    const geocodeData = await getCoordinates(addressData, cep);
 
     const userLat = parseFloat(geocodeData[0].lat);
     const userLon = parseFloat(geocodeData[0].lon);
@@ -40,26 +23,65 @@ exports.getStores = async (req, res) => {
       `Coordenadas para o CEP ${cep}: lat=${userLat}, lon=${userLon}`
     );
 
-    const radiusInKm = 100;
-    const radiusInMeters = radiusInKm * 1000;
-    const nearbyStores = await Store.find({
-      location: {
-        $near: {
-          $geometry: { type: "Point", coordinates: [userLon, userLat] },
-          $maxDistance: radiusInMeters,
-        },
-      },
-    });
+    const nearbyStores = await findNearbyStores(userLon, userLat, 100);
 
     logger.info(
       `Encontradas ${nearbyStores.length} lojas próximas ao CEP ${cep}: endereço: ${addressData.localidade}, ${addressData.logradouro},`
     );
-    return res.json(nearbyStores);
-  } catch (error) {
-    logger.error("Erro ao processar a requisição", error);
-    return res.status(500).json({ error: "Erro ao processar a requisição" });
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        nearbyStores,
+      },
+    });
+  } catch (err) {
+    logger.error("Erro ao processar a requisição", err);
+    res.status(500).json({
+      status: "failure",
+      message: err,
+    });
   }
 };
+
+async function getAddressByCep(cep) {
+  const viacepResponse = await axios.get(
+    `https://viacep.com.br/ws/${cep}/json/`
+  );
+  const addressData = viacepResponse.data;
+  if (addressData.erro) {
+    logger.warn(`CEP ${cep} not found`);
+    throw new Error("CEP not found");
+  }
+  return addressData;
+}
+
+async function getCoordinates(addressData, cep) {
+  const query = encodeURIComponent(
+    `${addressData.logradouro}, ${addressData.bairro}, ${addressData.localidade} - ${addressData.uf}`
+  );
+  const geocodeResponse = await axios.get(
+    `https://nominatim.openstreetmap.org/search?q=${query}&format=json`
+  );
+  const geocodeData = geocodeResponse.data;
+  if (!geocodeData || geocodeData.length === 0) {
+    logger.warn(`Coordinates not found for CEP ${cep}`);
+    throw new Error("Coordinates not found");
+  }
+  return geocodeData;
+}
+
+async function findNearbyStores(userLon, userLat, radiusInKm = 100) {
+  const radiusInMeters = radiusInKm * 1000;
+  return await Store.find({
+    location: {
+      $near: {
+        $geometry: { type: "Point", coordinates: [userLon, userLat] },
+        $maxDistance: radiusInMeters,
+      },
+    },
+  });
+}
 
 exports.createStore = async (req, res) => {
   const { name, address, location } = req.body;
