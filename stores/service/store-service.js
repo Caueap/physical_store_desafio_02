@@ -1,6 +1,6 @@
-const logger = require("../logger");
-const Store = require("../models/store-model");
-const functions = require('../utils/functions');
+const logger = require("../../utils/logger");
+const Store = require("../model/store-model");
+const functions = require('../../utils/functions');
 
 exports.getStores = async (req, res) => {
   const cep = req.query.cep;
