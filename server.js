@@ -3,6 +3,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const logger = require("./utils/logger");
 const storeRouter = require("./stores/routes/store-router");
+const AppError = require("./utils/app-error");
+const globalErrorHandler = require('./utils/global-error-handler');
 
 dotenv.config({ path: "./config.env" });
 
@@ -30,11 +32,10 @@ app.use(express.json());
 app.use("/api/v1/stores", storeRouter);
 
 app.all("*", (req, res, next) => {
-  res.status(404).json({
-    status: "fail",
-    message: `Can't find ${req.originalUrl}`,
-  });
+  next(new AppError(`Can't find ${req.originalUrl}`, 404));
 });
+
+app.use(globalErrorHandler);
 
 app.listen(port, () => {
   logger.info(`API rodando na porta ${port}`);
