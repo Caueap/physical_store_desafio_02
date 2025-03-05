@@ -1,4 +1,4 @@
-const storeService = require("../services/store-service");
+const storeService = require("../service/store-service");
 
 exports.getStores = async (req, res) => {
   return storeService.getStores(req, res);
