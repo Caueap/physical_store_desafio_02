@@ -1,6 +1,6 @@
 const logger = require("../../utils/logger");
 const Store = require("../model/store-model");
-const functions = require('../../utils/functions');
+const functions = require("../../utils/functions");
 
 exports.getStores = async (req, res) => {
   const cep = req.query.cep;
@@ -13,6 +13,10 @@ exports.getStores = async (req, res) => {
   }
 
   try {
+    functions.cepValidatorForDigitsLength(cep, res);
+
+    functions.cepValidatorForNumbersOnly(cep, res);
+
     const addressData = await functions.getAddressByCep(cep);
 
     const geocodeData = await functions.getCoordinates(addressData, cep);
