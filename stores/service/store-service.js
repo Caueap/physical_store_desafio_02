@@ -21,13 +21,13 @@ exports.getStores = async (req, res) => {
 
     const geocodeData = await functions.getCoordinates(addressData, cep);
 
-    const userLat = parseFloat(geocodeData[0].lat);
-    const userLon = parseFloat(geocodeData[0].lon);
+    const addressLat = parseFloat(geocodeData[0].lat);
+    const addressLon = parseFloat(geocodeData[0].lon);
     logger.info(
-      `Coordenadas para o CEP ${cep}: lat=${userLat}, lon=${userLon}`
+      `Coordenadas para o CEP ${cep}: lat=${addressLat}, lon=${addressLon}`
     );
 
-    const nearbyStores = await findNearbyStores(userLon, userLat, 100);
+    const nearbyStores = await findNearbyStores(addressLon, addressLat, 100);
 
     logger.info(
       `Encontradas ${nearbyStores.length} lojas próximas ao CEP ${cep}: endereço: ${addressData.localidade}, ${addressData.logradouro},`
@@ -48,12 +48,12 @@ exports.getStores = async (req, res) => {
   }
 };
 
-async function findNearbyStores(userLon, userLat, radiusInKm = 100) {
+async function findNearbyStores(addressLon, addressLat, radiusInKm = 100) {
   const radiusInMeters = radiusInKm * 1000;
   return await Store.find({
     location: {
       $near: {
-        $geometry: { type: "Point", coordinates: [userLon, userLat] },
+        $geometry: { type: "Point", coordinates: [addressLon, addressLat] },
         $maxDistance: radiusInMeters,
       },
     },
@@ -75,16 +75,26 @@ exports.createStore = async (req, res) => {
     location.type !== "Point"
   ) {
     logger.warn("Dados inválidos para criar uma loja");
-    return res.status(400).json({ error: "Dados inválidos" });
+    return res
+      .status(400)
+      .json({ error: "Por favor, informe todos os dados da loja" });
   }
 
   try {
     const newStore = new Store({ name, address, location });
     await newStore.save();
     logger.info(`Loja "${name}" criada`);
-    return res.status(201).json(newStore);
-  } catch (error) {
-    logger.error("Erro ao criar loja", error);
-    return res.status(500).json({ error: "Erro ao criar loja" });
+    return res.status(201).json({
+      status: "success",
+      data: {
+        newStore,
+      },
+    });
+  } catch (err) {
+    logger.error("Erro ao criar loja", err);
+    return res.status(500).json({
+      status: "failure",
+      message: err,
+    });
   }
 };
